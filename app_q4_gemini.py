@@ -8,22 +8,22 @@ import PyPDF2 # type: ignore
 from bs4 import BeautifulSoup # type: ignore
 
 # Gemini SDK
-import os
-import google.generativeai as genai # type: ignore
+import google.generativeai as genai  # type: ignore
 
 # Configure Gemini with API key (works locally + on Streamlit Cloud via secrets)
-API_KEY = os.environ.get("GEMINI_API_KEY")
+API_KEY = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+
 if not API_KEY:
-    raise RuntimeError(
-        "GEMINI_API_KEY is not set. "
-        "Locally: set $env:GEMINI_API_KEY in PowerShell. "
-        "On Streamlit Cloud: add GEMINI_API_KEY in app secrets."
-    )
+    st.error("GEMINI_API_KEY (or GOOGLE_API_KEY) is not set in environment / Streamlit secrets.")
+    st.stop()
 
 genai.configure(api_key=API_KEY)
 
+# Default model to use – this is where we switch away from the old gemini-1.5-flash
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+
 def query_gemini(prompt: str,
-                 model: str = "gemini-1.5-flash") -> str:
+                 model: str = GEMINI_MODEL) -> str:
     """
     Send a prompt to the Gemini API and return the response text
     using google-generativeai.
@@ -33,8 +33,7 @@ def query_gemini(prompt: str,
         resp = model_obj.generate_content(prompt)
         return (resp.text or "").strip()
     except Exception as e:
-        return f"Error calling Gemini API: {e}"
-
+        msg = str(e)
         # Handle overloaded / 503-style messages
         if "503" in msg or "UNAVAILABLE" in msg or "overloaded" in msg:
             return (
@@ -45,7 +44,6 @@ def query_gemini(prompt: str,
 
         # Generic fallback
         return f"Error calling Gemini API: {e}"
-
 
 
 # ------------- File reading helpers -------------
