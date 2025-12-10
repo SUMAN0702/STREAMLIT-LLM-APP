@@ -8,33 +8,32 @@ import PyPDF2 # type: ignore
 from bs4 import BeautifulSoup # type: ignore
 
 # Gemini SDK
-from google import genai
+import os
+import google.generativeai as genai
 
+# Configure Gemini with API key (works locally + on Streamlit Cloud via secrets)
+API_KEY = os.environ.get("GEMINI_API_KEY")
+if not API_KEY:
+    raise RuntimeError(
+        "GEMINI_API_KEY is not set. "
+        "Locally: set $env:GEMINI_API_KEY in PowerShell. "
+        "On Streamlit Cloud: add GEMINI_API_KEY in app secrets."
+    )
 
-# ------------- Gemini client setup -------------
-
-# The client will read GEMINI_API_KEY from the environment if not passed explicitly.
-# Recommended: set GEMINI_API_KEY in your environment before running.
-# Docs: https://ai.google.dev/gemini-api/docs/quickstart
-client = genai.Client()  # uses GEMINI_API_KEY env var
-
+genai.configure(api_key=API_KEY)
 
 def query_gemini(prompt: str,
-                 model: str = "gemini-2.5-flash") -> str:
+                 model: str = "gemini-1.5-flash") -> str:
     """
-    Send a prompt to the Gemini API and return the response text.
-    Handles common transient errors more gracefully.
+    Send a prompt to the Gemini API and return the response text
+    using google-generativeai.
     """
     try:
-        response = client.models.generate_content(
-            model=model,
-            contents=prompt,
-        )
-        return (response.text or "").strip()
-
+        model_obj = genai.GenerativeModel(model)
+        resp = model_obj.generate_content(prompt)
+        return (resp.text or "").strip()
     except Exception as e:
-        # Convert exception to string to inspect
-        msg = str(e)
+        return f"Error calling Gemini API: {e}"
 
         # Handle overloaded / 503-style messages
         if "503" in msg or "UNAVAILABLE" in msg or "overloaded" in msg:
