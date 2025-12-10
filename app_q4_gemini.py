@@ -80,14 +80,21 @@ def read_html_bytes(data: bytes) -> str:
 def extract_text_from_file(uploaded_file) -> str:
     """
     Detect file type based on extension and return extracted text.
-    Reads the uploaded file once into memory (bytes) so we can
-    safely pass it to different parsers.
+
+    Uses uploaded_file.getvalue() instead of .read() so that we can
+    safely call this function multiple times (for answer + preview)
+    without hitting EmptyFileError.
     """
     if uploaded_file is None:
         return ""
 
     filename = uploaded_file.name.lower()
-    data = uploaded_file.read()  # bytes
+
+    # getvalue() returns the full content without advancing the read pointer
+    data = uploaded_file.getvalue()
+    if not data:
+        # nothing to read – avoid PyPDF2 EmptyFileError
+        return ""
 
     if filename.endswith(".txt"):
         return read_txt_bytes(data)
@@ -99,6 +106,7 @@ def extract_text_from_file(uploaded_file) -> str:
         return read_html_bytes(data)
     else:
         return "Unsupported file type. Please upload .txt, .pdf, .docx, or .html."
+
 
 
 # ------------- Streamlit UI (Q1 app, Gemini backend) -------------
