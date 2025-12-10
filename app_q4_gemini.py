@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup # type: ignore
 
 # Gemini SDK
 import os
-import google.generativeai as genai
+import google.generativeai as genai # type: ignore
 
 # Configure Gemini with API key (works locally + on Streamlit Cloud via secrets)
 API_KEY = os.environ.get("GEMINI_API_KEY")
